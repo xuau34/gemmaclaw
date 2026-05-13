@@ -224,7 +224,8 @@ function isDockerInstalled(): boolean {
 
 function isDockerRunning(): boolean {
   try {
-    execSync("docker info", { stdio: "pipe", timeout: 10_000 });
+    const cmd = process.platform === "linux" ? "sudo docker info" : "docker info";
+    execSync(cmd, { stdio: "pipe", timeout: 10_000 });
     return true;
   } catch {
     return false;
