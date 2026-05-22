@@ -1,6 +1,7 @@
 import { execSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { addDockerGpuArgs, detectHardware } from "../gemmaclaw/provision/hardware.js";
 import type { BackendType } from "../gemmaclaw/benchmark/runner.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { defaultRuntime } from "../runtime.js";
@@ -99,11 +100,7 @@ async function runInDocker(opts: BenchmarkGemmaCommandOpts, runtime: RuntimeEnv)
 
   const args: string[] = ["run", "--rm"];
 
-  const { detectHardware } = await import("../gemmaclaw/provision/hardware.js");
-  const hw = detectHardware();
-  if (hw.gpu.nvidia || opts.gpuLayers != null) {
-    args.push("--gpus", "all");
-  }
+  addDockerGpuArgs(args, detectHardware(), { gpuLayers: opts.gpuLayers });
 
   args.push("-v", `${hostResultsDir}:/results`);
 
@@ -408,11 +405,7 @@ export async function benchmarkSandboxCommand(
     "BENCHMARK_SANDBOX=1",
   ];
 
-  const { detectHardware } = await import("../gemmaclaw/provision/hardware.js");
-  const hw = detectHardware();
-  if (hw.gpu.nvidia) {
-    createArgs.push("--gpus", "all");
-  }
+  addDockerGpuArgs(createArgs, detectHardware());
 
   if (opts.mock) {
     createArgs.push("-e", "BENCHMARK_MOCK=1");
