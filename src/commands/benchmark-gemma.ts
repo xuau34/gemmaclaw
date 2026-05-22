@@ -81,12 +81,12 @@ function dockerBuild(repoRoot: string, runtime: RuntimeEnv): boolean {
   }
 }
 
-function runInDocker(opts: BenchmarkGemmaCommandOpts, runtime: RuntimeEnv): Promise<number> {
+async function runInDocker(opts: BenchmarkGemmaCommandOpts, runtime: RuntimeEnv): Promise<number> {
   const repoRoot = findRepoRoot();
 
   if (!dockerBuild(repoRoot, runtime)) {
     runtime.error("Docker build failed. Run with --local to skip Docker.");
-    return Promise.resolve(1);
+    return 1;
   }
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
@@ -98,6 +98,12 @@ function runInDocker(opts: BenchmarkGemmaCommandOpts, runtime: RuntimeEnv): Prom
   fs.mkdirSync(hostResultsDir, { recursive: true });
 
   const args: string[] = ["run", "--rm"];
+
+  const { detectHardware } = await import("../gemmaclaw/provision/hardware.js");
+  const hw = detectHardware();
+  if (hw.gpu.nvidia || opts.gpuLayers != null) {
+    args.push("--gpus", "all");
+  }
 
   args.push("-v", `${hostResultsDir}:/results`);
 
@@ -401,6 +407,12 @@ export async function benchmarkSandboxCommand(
     "-e",
     "BENCHMARK_SANDBOX=1",
   ];
+
+  const { detectHardware } = await import("../gemmaclaw/provision/hardware.js");
+  const hw = detectHardware();
+  if (hw.gpu.nvidia) {
+    createArgs.push("--gpus", "all");
+  }
 
   if (opts.mock) {
     createArgs.push("-e", "BENCHMARK_MOCK=1");

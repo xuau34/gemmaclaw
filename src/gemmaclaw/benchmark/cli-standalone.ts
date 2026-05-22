@@ -323,9 +323,14 @@ async function runAgentModeInDocker(opts: Record<string, string | boolean>): Pro
       `GEMMACLAW_BENCHMARK_HOST_UID=${process.getuid?.() ?? 0}`,
       "-e",
       `GEMMACLAW_BENCHMARK_HOST_GID=${process.getgid?.() ?? 0}`,
-      "-v",
-      `${hostOutputDir}:${containerOutputDir}`,
     ];
+
+    const hw = detectHardware();
+    if (hw.gpu.nvidia) {
+      dockerArgs.push("--gpus", "all");
+    }
+
+    dockerArgs.push("-v", `${hostOutputDir}:${containerOutputDir}`);
     if (isOpenAICodexBenchmark && fs.existsSync(hostCodexAuthPath)) {
       dockerArgs.push("-e", "CODEX_HOME=/root/.codex", "-v", `${hostCodexHome}:/root/.codex:ro`);
     }
