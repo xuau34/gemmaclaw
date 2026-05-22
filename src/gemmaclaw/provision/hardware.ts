@@ -223,3 +223,17 @@ export function formatHardwareInfo(hw: HardwareInfo): string[] {
 
   return lines;
 }
+
+/**
+ * Adds GPU passthrough flags to a Docker argument array if a compatible GPU (NVIDIA) is detected,
+ * or if user-specified layer options imply GPU usage.
+ */
+export function addDockerGpuArgs(
+  args: string[],
+  hw: HardwareInfo,
+  opts?: { gpuLayers?: number | null },
+): void {
+  if (hw.gpu.nvidia || opts?.gpuLayers != null) {
+    args.push("--gpus", "all");
+  }
+}

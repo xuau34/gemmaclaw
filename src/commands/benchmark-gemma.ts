@@ -1,8 +1,8 @@
 import { execSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { addDockerGpuArgs, detectHardware } from "../gemmaclaw/provision/hardware.js";
 import type { BackendType } from "../gemmaclaw/benchmark/runner.js";
+import { addDockerGpuArgs, detectHardware } from "../gemmaclaw/provision/hardware.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { defaultRuntime } from "../runtime.js";
 
