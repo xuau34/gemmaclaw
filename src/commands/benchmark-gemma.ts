@@ -2,6 +2,7 @@ import { execSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import type { BackendType } from "../gemmaclaw/benchmark/runner.js";
+import { addDockerGpuArgs, detectHardware } from "../gemmaclaw/provision/hardware.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { defaultRuntime } from "../runtime.js";
 
@@ -81,12 +82,12 @@ function dockerBuild(repoRoot: string, runtime: RuntimeEnv): boolean {
   }
 }
 
-function runInDocker(opts: BenchmarkGemmaCommandOpts, runtime: RuntimeEnv): Promise<number> {
+async function runInDocker(opts: BenchmarkGemmaCommandOpts, runtime: RuntimeEnv): Promise<number> {
   const repoRoot = findRepoRoot();
 
   if (!dockerBuild(repoRoot, runtime)) {
     runtime.error("Docker build failed. Run with --local to skip Docker.");
-    return Promise.resolve(1);
+    return 1;
   }
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
@@ -98,6 +99,8 @@ function runInDocker(opts: BenchmarkGemmaCommandOpts, runtime: RuntimeEnv): Prom
   fs.mkdirSync(hostResultsDir, { recursive: true });
 
   const args: string[] = ["run", "--rm"];
+
+  addDockerGpuArgs(args, detectHardware(), { gpuLayers: opts.gpuLayers });
 
   args.push("-v", `${hostResultsDir}:/results`);
 
@@ -401,6 +404,8 @@ export async function benchmarkSandboxCommand(
     "-e",
     "BENCHMARK_SANDBOX=1",
   ];
+
+  addDockerGpuArgs(createArgs, detectHardware());
 
   if (opts.mock) {
     createArgs.push("-e", "BENCHMARK_MOCK=1");
