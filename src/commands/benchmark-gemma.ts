@@ -8,6 +8,7 @@ import { defaultRuntime } from "../runtime.js";
 
 export type BenchmarkGemmaCommandOpts = {
   mock?: boolean;
+  noGpu?: boolean;
   model?: string;
   backend?: string;
   ollamaUrl?: string;
@@ -34,6 +35,7 @@ export type BenchmarkSandboxOpts = {
   file: string;
   model?: string;
   mock?: boolean;
+  noGpu?: boolean;
   /** Keep container running after the benchmark finishes (for inspection). */
   keep?: boolean;
   /** Gemini API key for cloud-based evaluation (uses Gemini instead of local Ollama). */
@@ -100,7 +102,7 @@ async function runInDocker(opts: BenchmarkGemmaCommandOpts, runtime: RuntimeEnv)
 
   const args: string[] = ["run", "--rm"];
 
-  addDockerGpuArgs(args, detectHardware(), { gpuLayers: opts.gpuLayers });
+  addDockerGpuArgs(args, detectHardware(), { gpuLayers: opts.gpuLayers, noGpu: opts.noGpu });
 
   args.push("-v", `${hostResultsDir}:/results`);
 
@@ -405,7 +407,7 @@ export async function benchmarkSandboxCommand(
     "BENCHMARK_SANDBOX=1",
   ];
 
-  addDockerGpuArgs(createArgs, detectHardware());
+  addDockerGpuArgs(createArgs, detectHardware(), { noGpu: opts.noGpu });
 
   if (opts.mock) {
     createArgs.push("-e", "BENCHMARK_MOCK=1");

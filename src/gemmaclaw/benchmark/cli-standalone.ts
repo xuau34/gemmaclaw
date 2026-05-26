@@ -59,6 +59,8 @@ function parseArgs(argv: string[]) {
     const arg = args[i];
     if (arg === "--mock") {
       opts.mock = true;
+    } else if (arg === "--no-gpu") {
+      opts.noGpu = true;
     } else if (arg === "--local") {
       opts.local = true;
     } else if (arg === "--keep") {
@@ -326,7 +328,7 @@ async function runAgentModeInDocker(opts: Record<string, string | boolean>): Pro
     ];
 
     const hw = detectHardware();
-    if (hw.gpu.nvidia) {
+    if (hw.gpu.nvidia && !opts.noGpu) {
       dockerArgs.push("--gpus", "all");
     }
 
@@ -637,6 +639,7 @@ if (opts.agent) {
       file: opts.file as string,
       model: opts.model as string | undefined,
       mock: Boolean(opts.mock),
+      noGpu: Boolean(opts.noGpu),
       keep: Boolean(opts.keep),
       geminiApiKey: opts.geminiApiKey as string | undefined,
       geminiModel: opts.geminiModel as string | undefined,
@@ -650,6 +653,7 @@ if (opts.agent) {
   benchmarkGemmaCommand(
     {
       mock: Boolean(opts.mock),
+      noGpu: Boolean(opts.noGpu),
       local: Boolean(opts.local),
       model: opts.model as string | undefined,
       ollamaUrl: opts.ollamaUrl as string | undefined,
