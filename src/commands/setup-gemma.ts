@@ -1,4 +1,9 @@
-import { execFileSync, execSync, spawn, type ChildProcess } from "node:child_process";
+import {
+  execFileSync,
+  execSync,
+  spawn,
+  type ChildProcess,
+} from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -35,6 +40,7 @@ export type SetupGemmaCommandOpts = {
 
   /** Pre-set onboarding choices supplied via flags. */
   agentName?: string;
+  port?: string | number;
   thinking?: OnboardingThinking;
   bootstrap?: OnboardingBootstrap;
   setupMode?: OnboardingBackend;
@@ -57,7 +63,9 @@ function ensureDockerWritableHostDir(
   fsModule.mkdirSync(dir, { recursive: true });
   fsModule.chmodSync(dir, 0o777);
   try {
-    execFileSync("setfacl", ["-d", "-m", "u::rwx,g::rwx,o::rwx", dir], { stdio: "ignore" });
+    execFileSync("setfacl", ["-d", "-m", "u::rwx,g::rwx,o::rwx", dir], {
+      stdio: "ignore",
+    });
   } catch {
     // setfacl is not available on every host. chmod(777) keeps the directory
     // writable, and the live Docker smoke catches hosts that need default ACLs.
@@ -100,7 +108,10 @@ function applyGemmaclawHookDefaults(draft: OpenClawConfig): void {
   const hooks = draft.hooks as Record<string, unknown>;
   const internal =
     typeof hooks.internal === "object" && hooks.internal !== null
-      ? ({ ...(hooks.internal as Record<string, unknown>) } as Record<string, unknown>)
+      ? ({ ...(hooks.internal as Record<string, unknown>) } as Record<
+          string,
+          unknown
+        >)
       : {};
   const entries =
     typeof internal.entries === "object" && internal.entries !== null
@@ -118,9 +129,12 @@ function applyGemmaclawHookDefaults(draft: OpenClawConfig): void {
   hooks.internal = internal;
 }
 
-async function ensureGemmaclawKnowledgeAgentCron(runtime: RuntimeEnv): Promise<void> {
+async function ensureGemmaclawKnowledgeAgentCron(
+  runtime: RuntimeEnv,
+): Promise<void> {
   const { loadConfig } = await import("../config/config.js");
-  const { ensureDefaultKnowledgeAgentCron } = await import("./onboard-knowledge-agent.js");
+  const { ensureDefaultKnowledgeAgentCron } =
+    await import("./onboard-knowledge-agent.js");
   await ensureDefaultKnowledgeAgentCron({ cfg: loadConfig(), runtime });
 }
 
@@ -151,7 +165,9 @@ async function waitForGatewayReady(port: number): Promise<boolean> {
     if (await probeGatewayHealth(port)) {
       return true;
     }
-    await new Promise((resolve) => setTimeout(resolve, HEALTH_POLL_INTERVAL_MS));
+    await new Promise((resolve) =>
+      setTimeout(resolve, HEALTH_POLL_INTERVAL_MS),
+    );
   }
   return false;
 }
@@ -204,11 +220,15 @@ function resolveCliEntryPath(): string {
 
 function spawnGatewayDetached(port: number): ChildProcess {
   const entryPath = resolveCliEntryPath();
-  const child = spawn(process.execPath, [entryPath, "gateway", "run", "--port", String(port)], {
-    stdio: "ignore",
-    detached: true,
-    env: process.env,
-  });
+  const child = spawn(
+    process.execPath,
+    [entryPath, "gateway", "run", "--port", String(port)],
+    {
+      stdio: "ignore",
+      detached: true,
+      env: process.env,
+    },
+  );
   child.unref();
   return child;
 }
@@ -237,7 +257,10 @@ export interface DockerProbe {
   isRunning(): boolean;
 }
 
-const DOCKER_PROBE: DockerProbe = { isInstalled: isDockerInstalled, isRunning: isDockerRunning };
+const DOCKER_PROBE: DockerProbe = {
+  isInstalled: isDockerInstalled,
+  isRunning: isDockerRunning,
+};
 
 /**
  * Assert that Docker is available for container mode. Hard-fails with a clear
@@ -260,29 +283,39 @@ export async function assertDockerForContainerMode(
 
   if (!probe.isInstalled()) {
     runtime.error("");
-    runtime.error("Container mode requires Docker, but Docker is not installed on this machine.");
+    runtime.error(
+      "Container mode requires Docker, but Docker is not installed on this machine.",
+    );
     runtime.error(`Install Docker from ${installUrl} and rerun setup,`);
-    runtime.error("or choose local mode (option 2 in the setup wizard, or --no-container).");
+    runtime.error(
+      "or choose local mode (option 2 in the setup wizard, or --no-container).",
+    );
     runtime.exit(1);
     return;
   }
 
   if (!probe.isRunning()) {
     runtime.error("");
-    runtime.error("Container mode requires Docker, but the Docker daemon is not running.");
+    runtime.error(
+      "Container mode requires Docker, but the Docker daemon is not running.",
+    );
     runtime.error("Start Docker and try again:");
     runtime.error("  macOS:   Open Docker Desktop (or: open -a Docker)");
     runtime.error("  Linux:   sudo systemctl start docker");
 
     if (prompt) {
-      const answer = await prompt("Press Enter once Docker is running (or Ctrl+C to cancel): ");
+      const answer = await prompt(
+        "Press Enter once Docker is running (or Ctrl+C to cancel): ",
+      );
       if (!answer.trim() && probe.isRunning()) {
         return;
       }
     }
 
     runtime.error("");
-    runtime.error(`Install or start Docker from ${installUrl} and rerun setup,`);
+    runtime.error(
+      `Install or start Docker from ${installUrl} and rerun setup,`,
+    );
     runtime.error("or choose local mode (--no-container).");
     runtime.exit(1);
     return;
@@ -293,18 +326,26 @@ export async function assertDockerForContainerMode(
  * Map the onboarding wizard's friendly choices onto an Ollama-style model id
  * that the local provisioner can pull. "auto" defers to hardware detection.
  */
-function resolveLocalOllamaModel(modelChoice: string, fallback?: string): string | undefined {
+function resolveLocalOllamaModel(
+  modelChoice: string,
+  fallback?: string,
+): string | undefined {
   if (!modelChoice || modelChoice === "auto") {
     return fallback;
   }
   return modelChoice;
 }
 
-function persistThinkingDefault(thinking: OnboardingThinking): "off" | "low" | "medium" | "high" {
+function persistThinkingDefault(
+  thinking: OnboardingThinking,
+): "off" | "low" | "medium" | "high" {
   return thinking;
 }
 
-function applySetupAgentConfig(draft: OpenClawConfig, choices: OnboardingChoices): void {
+function applySetupAgentConfig(
+  draft: OpenClawConfig,
+  choices: OnboardingChoices,
+): void {
   const existingEntries = listAgentEntries(draft);
   const agentId = normalizeAgentId(choices.agentName);
   const stateDir = resolveStateDir(process.env);
@@ -324,7 +365,9 @@ function applySetupAgentConfig(draft: OpenClawConfig, choices: OnboardingChoices
   if (existingEntries.length === 0) {
     draft.agents = {
       ...draft.agents,
-      list: (draft.agents?.list ?? []).filter((entry) => normalizeAgentId(entry?.id) === agentId),
+      list: (draft.agents?.list ?? []).filter(
+        (entry) => normalizeAgentId(entry?.id) === agentId,
+      ),
     };
   }
 }
@@ -336,9 +379,14 @@ export async function setupGemmaCommand(
   // Lazy-load to keep CLI startup fast.
   const { detectHardware, detectSystemTools, formatHardwareInfo } =
     await import("../gemmaclaw/provision/hardware.js");
-  const { selectQuickProfile, runAdvancedWizard, createStdioWizardIO, formatModelSize } =
-    await import("../gemmaclaw/provision/setup-wizard.js");
-  const { provision, verifyCompletion } = await import("../gemmaclaw/provision/provision.js");
+  const {
+    selectQuickProfile,
+    runAdvancedWizard,
+    createStdioWizardIO,
+    formatModelSize,
+  } = await import("../gemmaclaw/provision/setup-wizard.js");
+  const { provision, verifyCompletion } =
+    await import("../gemmaclaw/provision/provision.js");
   const { DEFAULT_GATEWAY_PORT } = await import("../config/paths.js");
   const {
     runOnboardingWizard,
@@ -403,12 +451,16 @@ export async function setupGemmaCommand(
   // without a running Docker daemon.
   if (choices.useContainer) {
     if (dryRun) {
-      runtime.log("[dry-run] Skipping Docker availability check for container mode.");
+      runtime.log(
+        "[dry-run] Skipping Docker availability check for container mode.",
+      );
     } else {
       const interactivePrompt = opts.nonInteractive
         ? null
         : async (q: string) => {
-            const rl = (await import("node:readline/promises")).default.createInterface({
+            const rl = (
+              await import("node:readline/promises")
+            ).default.createInterface({
               input: process.stdin,
               output: process.stdout,
             });
@@ -418,7 +470,11 @@ export async function setupGemmaCommand(
               rl.close();
             }
           };
-      await assertDockerForContainerMode(runtime, DOCKER_PROBE, interactivePrompt);
+      await assertDockerForContainerMode(
+        runtime,
+        DOCKER_PROBE,
+        interactivePrompt,
+      );
     }
   }
   const useDocker = choices.useContainer;
@@ -458,11 +514,19 @@ export async function setupGemmaCommand(
     }
   } else {
     profile = selectQuickProfile(hw, tools);
-    const recommendedModel = resolveLocalOllamaModel(choices.model, profile.model);
+    const recommendedModel = resolveLocalOllamaModel(
+      choices.model,
+      profile.model,
+    );
     if (recommendedModel && recommendedModel !== profile.model) {
-      profile = { ...profile, model: recommendedModel, modelDisplayName: recommendedModel };
+      profile = {
+        ...profile,
+        model: recommendedModel,
+        modelDisplayName: recommendedModel,
+      };
     }
-    const displayName = profile.modelDisplayName ?? profile.model ?? "default model";
+    const displayName =
+      profile.modelDisplayName ?? profile.model ?? "default model";
     const dlSize = formatModelSize(profile.modelDownloadBytes);
     runtime.log("");
     runtime.log(`Recommended: ${displayName} (${dlSize} download)`);
@@ -471,7 +535,9 @@ export async function setupGemmaCommand(
 
   if (dryRun) {
     runtime.log("");
-    runtime.log("[dry-run] Skipping backend provisioning, gateway start, and smoke test.");
+    runtime.log(
+      "[dry-run] Skipping backend provisioning, gateway start, and smoke test.",
+    );
     runtime.log(
       `[dry-run] Would provision ${profile.backend} with model ${profile.model ?? "(auto)"} on port ${String(profile.port)}.`,
     );
@@ -481,7 +547,9 @@ export async function setupGemmaCommand(
   }
 
   runtime.log("");
-  runtime.log(`Provisioning ${profile.backend} on port ${String(profile.port)}...`);
+  runtime.log(
+    `Provisioning ${profile.backend} on port ${String(profile.port)}...`,
+  );
 
   const progress = (msg: string) => {
     runtime.log(msg);
@@ -497,7 +565,10 @@ export async function setupGemmaCommand(
 
     runtime.log("");
     runtime.log("Running smoke test...");
-    const verification = await verifyCompletion(result.handle.apiBaseUrl, result.modelId);
+    const verification = await verifyCompletion(
+      result.handle.apiBaseUrl,
+      result.modelId,
+    );
 
     if (verification.ok) {
       runtime.log(`Smoke test passed. Response: "${verification.content}"`);
@@ -514,6 +585,9 @@ export async function setupGemmaCommand(
           draft.gateway.mode = "local";
           draft.gateway.auth ??= {};
           draft.gateway.auth.mode = "none";
+          if (opts.port !== undefined) {
+            draft.gateway.port = Number(opts.port);
+          }
 
           draft.models ??= {};
           draft.models.providers ??= {};
@@ -536,7 +610,9 @@ export async function setupGemmaCommand(
           draft.agents ??= {};
           draft.agents.defaults ??= {};
           draft.agents.defaults.model = `ollama/${ollamaModel}`;
-          draft.agents.defaults.thinkingDefault = persistThinkingDefault(choices.thinkingLevel);
+          draft.agents.defaults.thinkingDefault = persistThinkingDefault(
+            choices.thinkingLevel,
+          );
           applySetupAgentConfig(draft, choices);
 
           draft.tools ??= {};
@@ -554,11 +630,17 @@ export async function setupGemmaCommand(
 
       if (enableSandbox) {
         runtime.log(`  Sandbox: Docker (tools run in isolated containers)`);
-        const sharedDir = path.join(process.env.HOME ?? "/root", ".gemmaclaw", "shared");
+        const sharedDir = path.join(
+          process.env.HOME ?? "/root",
+          ".gemmaclaw",
+          "shared",
+        );
         try {
           const { mkdirSync } = await import("node:fs");
           mkdirSync(sharedDir, { recursive: true });
-          runtime.log(`  Shared: ${sharedDir} (mounted at /workspace/shared in containers)`);
+          runtime.log(
+            `  Shared: ${sharedDir} (mounted at /workspace/shared in containers)`,
+          );
         } catch {
           runtime.log(`  Shared: could not create ${sharedDir}`);
         }
@@ -571,18 +653,22 @@ export async function setupGemmaCommand(
       runtime.log("");
       runtime.log("Setup complete! Your Gemma assistant is ready.");
 
-      const { ensureControlUiAssetsBuilt } = await import("../infra/control-ui-assets.js");
+      const { ensureControlUiAssetsBuilt } =
+        await import("../infra/control-ui-assets.js");
       runtime.log("");
       runtime.log("Checking Control UI assets...");
       const uiBuild = await ensureControlUiAssetsBuilt(runtime);
       if (uiBuild.ok) {
-        runtime.log(uiBuild.built ? "Control UI built." : "Control UI assets ready.");
+        runtime.log(
+          uiBuild.built ? "Control UI built." : "Control UI assets ready.",
+        );
       } else {
         runtime.error(`Control UI: ${uiBuild.message}`);
         runtime.error("The gateway will attempt to build them on first start.");
       }
 
-      const gwPort = DEFAULT_GATEWAY_PORT;
+      const gwPort =
+        opts.port !== undefined ? Number(opts.port) : DEFAULT_GATEWAY_PORT;
       killProcessesOnPort(gwPort);
 
       runtime.log("");
@@ -621,8 +707,12 @@ export async function setupGemmaCommand(
     runtime.error(`Setup failed: ${message}`);
     runtime.error("");
     runtime.error("Troubleshooting:");
-    runtime.error("  - Check network connectivity (runtimes and models are downloaded)");
-    runtime.error("  - Try 'gemmaclaw setup --advanced' to pick a different backend");
+    runtime.error(
+      "  - Check network connectivity (runtimes and models are downloaded)",
+    );
+    runtime.error(
+      "  - Try 'gemmaclaw setup --advanced' to pick a different backend",
+    );
     runtime.error("  - See 'gemmaclaw provision --help' for manual control");
     runtime.exit(1);
   }
@@ -634,7 +724,9 @@ async function setupGeminiBackend(
   ctx: { dryRun: boolean },
 ): Promise<void> {
   if (!choices.apiKey) {
-    runtime.error("Gemini API key required. Set GEMINI_API_KEY or pick another backend.");
+    runtime.error(
+      "Gemini API key required. Set GEMINI_API_KEY or pick another backend.",
+    );
     runtime.exit(1);
     return;
   }
@@ -653,7 +745,9 @@ async function setupVertexBackend(
 ): Promise<void> {
   runtime.log(`Configuring Vertex AI with model ${choices.model}.`);
   if (ctx.dryRun) {
-    runtime.log("[dry-run] Skipping gcloud auth probe and Vertex config write.");
+    runtime.log(
+      "[dry-run] Skipping gcloud auth probe and Vertex config write.",
+    );
     return;
   }
   const { interactiveVertexSetup, buildVertexConfig } =
@@ -675,11 +769,19 @@ async function setupVertexBackend(
   }
 }
 
-async function writeGeminiAuthProfile(agentName: string, apiKey: string): Promise<void> {
+async function writeGeminiAuthProfile(
+  agentName: string,
+  apiKey: string,
+): Promise<void> {
   const fs = await import("node:fs");
   const { resolveStateDir } = await import("../config/paths.js");
   const stateDir = resolveStateDir(process.env);
-  const agentDir = path.join(stateDir, "agents", normalizeAgentId(agentName), "agent");
+  const agentDir = path.join(
+    stateDir,
+    "agents",
+    normalizeAgentId(agentName),
+    "agent",
+  );
   const authPath = path.join(agentDir, "auth-profiles.json");
   let auth: Record<string, unknown> = { version: 1, profiles: {} };
   try {
@@ -688,13 +790,20 @@ async function writeGeminiAuthProfile(agentName: string, apiKey: string): Promis
     /* first time */
   }
   const profiles = (auth.profiles ?? {}) as Record<string, unknown>;
-  profiles["google:api-key"] = { type: "token", provider: "google", token: apiKey };
+  profiles["google:api-key"] = {
+    type: "token",
+    provider: "google",
+    token: apiKey,
+  };
   auth.profiles = profiles;
   fs.mkdirSync(path.dirname(authPath), { recursive: true });
   fs.writeFileSync(authPath, JSON.stringify(auth, null, 2));
 }
 
-async function writeVertexAuthProfile(agentName: string, accessToken: string): Promise<void> {
+async function writeVertexAuthProfile(
+  agentName: string,
+  accessToken: string,
+): Promise<void> {
   const fs = await import("node:fs");
   const { resolveStateDir } = await import("../config/paths.js");
   const stateDir = resolveStateDir(process.env);
@@ -738,7 +847,9 @@ async function applySharedAgentDefaults(
       draft.agents ??= {};
       draft.agents.defaults ??= {};
       const defaults = draft.agents.defaults as Record<string, unknown>;
-      defaults["thinkingDefault"] = persistThinkingDefault(choices.thinkingLevel);
+      defaults["thinkingDefault"] = persistThinkingDefault(
+        choices.thinkingLevel,
+      );
       // Map onboarding backend → canonical model id for non-local routes.
       if (choices.backend === "gemini") {
         defaults["model"] = choices.model;
@@ -767,10 +878,13 @@ async function applySharedAgentDefaults(
   await ensureGemmaclawKnowledgeAgentCron(runtime);
 }
 
-export async function applyAgentNameAndBootstrap(choices: OnboardingChoices): Promise<void> {
+export async function applyAgentNameAndBootstrap(
+  choices: OnboardingChoices,
+): Promise<void> {
   const fs = await import("node:fs");
   const { loadConfig } = await import("../config/config.js");
-  const { applyBootstrapProfile } = await import("../gemmaclaw/provision/bootstrap-profiles.js");
+  const { applyBootstrapProfile } =
+    await import("../gemmaclaw/provision/bootstrap-profiles.js");
   const { resolveStateDir } = await import("../config/paths.js");
   const cfg = loadConfig();
   const agentId = normalizeAgentId(choices.agentName);
@@ -807,7 +921,9 @@ export async function applyAgentNameAndBootstrap(choices: OnboardingChoices): Pr
     choices.agentName === "main"
       ? path.join(stateDir, "workspace")
       : path.join(stateDir, "workspaces", choices.agentName);
-  applyBootstrapProfile(choices.bootstrap, workspaceDir, { useContainer: choices.useContainer });
+  applyBootstrapProfile(choices.bootstrap, workspaceDir, {
+    useContainer: choices.useContainer,
+  });
   if (choices.useContainer) {
     ensureDockerWritableHostDir(fs, workspaceDir);
     ensureDockerWritableHostDir(fs, resolveGemmaclawSharedDir());
