@@ -1545,6 +1545,9 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
           ...prefixOptions,
           humanDelay: core.channel.reply.resolveHumanDelayConfig(cfg, _route.agentId),
           deliver: async (payload: ReplyPayload, info: { kind: string }) => {
+            const finalReplyModeIsMain = threadReplies === "main" && (info.kind === "final" || info.kind === "summary" || !draftStream);
+            const resolvedThreadTarget = finalReplyModeIsMain ? undefined : threadTarget;
+
             if (draftStream && info.kind !== "tool" && !payload.isCompactionNotice) {
               const hasMedia = Boolean(payload.mediaUrl) || (payload.mediaUrls?.length ?? 0) > 0;
 
@@ -1558,7 +1561,7 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
                   runtime,
                   textLimit,
                   replyToMode,
-                  threadId: threadTarget,
+                  threadId: resolvedThreadTarget,
                   accountId: _route.accountId,
                   mediaLocalRoots,
                   tableMode,
@@ -1602,7 +1605,7 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
                     await editMessageMatrix(roomId, draftEventId, payload.text, {
                       client,
                       cfg,
-                      threadId: threadTarget,
+                      threadId: resolvedThreadTarget,
                       accountId: _route.accountId,
                       extraContent: quietDraftStreaming
                         ? buildMatrixFinalizedPreviewContent()
@@ -1621,7 +1624,7 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
                     runtime,
                     textLimit,
                     replyToMode,
-                    threadId: threadTarget,
+                    threadId: resolvedThreadTarget,
                     accountId: _route.accountId,
                     mediaLocalRoots,
                     tableMode,
@@ -1645,7 +1648,7 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
                   textEditOk = await editMessageMatrix(roomId, draftEventId, payloadText, {
                     client,
                     cfg,
-                    threadId: threadTarget,
+                    threadId: resolvedThreadTarget,
                     accountId: _route.accountId,
                     extraContent: quietDraftStreaming
                       ? buildMatrixFinalizedPreviewContent()
@@ -1671,7 +1674,7 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
                   runtime,
                   textLimit,
                   replyToMode,
-                  threadId: threadTarget,
+                  threadId: resolvedThreadTarget,
                   accountId: _route.accountId,
                   mediaLocalRoots,
                   tableMode,
@@ -1692,7 +1695,7 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
                   runtime,
                   textLimit,
                   replyToMode,
-                  threadId: threadTarget,
+                  threadId: resolvedThreadTarget,
                   accountId: _route.accountId,
                   mediaLocalRoots,
                   tableMode,
@@ -1723,7 +1726,7 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
                 runtime,
                 textLimit,
                 replyToMode,
-                threadId: threadTarget,
+                threadId: resolvedThreadTarget,
                 accountId: _route.accountId,
                 mediaLocalRoots,
                 tableMode,

@@ -22,8 +22,8 @@ export type MatrixDmConfig = {
    * - `per-room`: each Matrix DM room gets its own session key.
    */
   sessionScope?: "per-user" | "per-room";
-  /** Per-DM thread reply behavior override (off|inbound|always). Overrides top-level threadReplies for direct messages. */
-  threadReplies?: "off" | "inbound" | "always";
+  /** Per-DM thread reply behavior override (off|inbound|always|main). Overrides top-level threadReplies for direct messages. */
+  threadReplies?: "off" | "inbound" | "always" | "main";
 };
 
 export type MatrixRoomConfig = {
@@ -146,8 +146,8 @@ export type MatrixConfig = {
   groupAllowFrom?: Array<string | number>;
   /** Control reply threading when reply tags are present (off|first|all|batched). */
   replyToMode?: ReplyToMode;
-  /** How to handle thread replies (off|inbound|always). */
-  threadReplies?: "off" | "inbound" | "always";
+  /** How to handle thread replies (off|inbound|always|main). */
+  threadReplies?: "off" | "inbound" | "always" | "main";
   /** Outbound text chunk size (chars). Default: 4000. */
   textChunkLimit?: number;
   /** Chunking mode: "length" (default) splits by size; "newline" splits on every newline. */

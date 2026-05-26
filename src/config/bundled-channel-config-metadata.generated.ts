@@ -6863,7 +6863,7 @@ export const GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA = [
         },
         threadReplies: {
           type: "string",
-          enum: ["off", "inbound", "always"],
+          enum: ["off", "inbound", "always", "main"],
         },
         textChunkLimit: {
           type: "number",
@@ -6983,7 +6983,7 @@ export const GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA = [
             },
             threadReplies: {
               type: "string",
-              enum: ["off", "inbound", "always"],
+              enum: ["off", "inbound", "always", "main"],
             },
           },
           additionalProperties: false,
