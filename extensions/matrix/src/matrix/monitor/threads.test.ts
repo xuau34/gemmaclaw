@@ -28,6 +28,19 @@ describe("resolveMatrixThreadRouting", () => {
     });
   });
 
+  it("uses the inbound thread root when threadReplies is main", () => {
+    expect(
+      resolveMatrixThreadRouting({
+        isDirectMessage: false,
+        threadReplies: "main",
+        messageId: "$reply1",
+        threadRootId: "$root",
+      }),
+    ).toEqual({
+      threadId: "$root",
+    });
+  });
+
   it("keeps top-level inbound messages flat when threadReplies is inbound", () => {
     expect(
       resolveMatrixThreadRouting({
