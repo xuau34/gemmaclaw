@@ -1,0 +1,11 @@
+--- src/gemmaclaw/benchmark/cli-standalone.ts
++++ src/gemmaclaw/benchmark/cli-standalone.ts
+@@ -582,6 +582,8 @@
+     hardware.gpu.name ??
+     (config.backend === "ollama" && !hardware.gpu.detected
+       ? "via Ollama host (detect after run)"
++      : config.backend === "llama-cpp" && !hardware.gpu.detected
++      ? "via llama.cpp host (detect after run)"
+       : "not detected");
+   console.log(`GPU:      ${gpuDisplay}`);
+   console.log(`Output:   ${outputDir}`);

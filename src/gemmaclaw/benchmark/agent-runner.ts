@@ -675,6 +675,26 @@ export async function collectMetadata(
     }
   }
 
+  if (!effectiveHardware.gpu.detected && config.llamaCppUrl) {
+    try {
+      const propsResp = await httpGet(`${config.llamaCppUrl}/props`, 10_000);
+      const props = JSON.parse(propsResp) as { default_generation_settings?: { n_gpu_layers?: number } };
+      if (props.default_generation_settings?.n_gpu_layers && props.default_generation_settings.n_gpu_layers > 0) {
+        effectiveHardware = {
+          ...hardware,
+          gpu: {
+            detected: true,
+            nvidia: true,
+            apple: false,
+            name: "GPU (via llama.cpp host)",
+          },
+        };
+      }
+    } catch {
+      /* llama.cpp props not available or container not using llama.cpp host */
+    }
+  }
+
   return {
     model: config.model,
     quant: config.quant,

@@ -581,8 +581,6 @@ async function runAgentMode(opts: Record<string, string | boolean>): Promise<voi
     hardware.gpu.name ??
     (config.backend === "ollama" && !hardware.gpu.detected
       ? "via Ollama host (detect after run)"
-      : config.backend === "llama-cpp" && !hardware.gpu.detected
-      ? "via llama.cpp host (detect after run)"
       : "not detected");
   console.log(`GPU:      ${gpuDisplay}`);
   console.log(`Output:   ${outputDir}`);
