@@ -1619,7 +1619,7 @@
     "tsdown": "0.21.9",
     "tsx": "^4.21.0",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.4"
+    "vitest": "^4.1.7"
   },
   "peerDependencies": {
     "@napi-rs/canvas": "^0.1.89",

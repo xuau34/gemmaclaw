@@ -86,7 +86,7 @@ export const MatrixConfigSchema = z.object({
   blockStreaming: z.boolean().optional(),
   streaming: z.union([z.enum(["partial", "quiet", "off"]), z.boolean()]).optional(),
   replyToMode: z.enum(["off", "first", "all", "batched"]).optional(),
-  threadReplies: z.enum(["off", "inbound", "always"]).optional(),
+  threadReplies: z.enum(["off", "inbound", "always", "main"]).optional(),
   textChunkLimit: z.number().optional(),
   chunkMode: z.enum(["length", "newline"]).optional(),
   responsePrefix: z.string().optional(),
@@ -105,7 +105,7 @@ export const MatrixConfigSchema = z.object({
   groupAllowFrom: AllowFromListSchema,
   dm: buildNestedDmConfigSchema({
     sessionScope: z.enum(["per-user", "per-room"]).optional(),
-    threadReplies: z.enum(["off", "inbound", "always"]).optional(),
+    threadReplies: z.enum(["off", "inbound", "always", "main"]).optional(),
   }),
   execApprovals: matrixExecApprovalsSchema,
   groups: z.object({}).catchall(matrixRoomSchema).optional(),
